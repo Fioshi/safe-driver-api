@@ -3,16 +3,14 @@ package fioshi.com.github.safedriver.SafeDriver.dto;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
-
 @Getter
 @Setter
-public class DriverResponseDTO {
+public class DriverCreateDTO {
 
     private String nome;
     private String email;
+    private String password;
     private String telefone;
-    private List<VehicleDTO> vehicles;
     private String objetivoDeDirecao;
     private String emailCorporativo;
 

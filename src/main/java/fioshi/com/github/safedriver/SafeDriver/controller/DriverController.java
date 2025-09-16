@@ -1,7 +1,7 @@
 package fioshi.com.github.safedriver.SafeDriver.controller;
 
 import fioshi.com.github.safedriver.SafeDriver.dto.DriverResponseDTO;
-import fioshi.com.github.safedriver.SafeDriver.model.Driver;
+import fioshi.com.github.safedriver.SafeDriver.dto.DriverUpdateDTO;
 import fioshi.com.github.safedriver.SafeDriver.service.DriverService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -28,14 +28,9 @@ public class DriverController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public DriverResponseDTO createDriver(@RequestBody Driver driver) {
-        return driverService.save(driver);
-    }
-
     @PutMapping("/{id}")
-    public ResponseEntity<DriverResponseDTO> updateDriver(@PathVariable Integer id, @RequestBody Driver driverDetails) {
-        return driverService.update(id, driverDetails)
+    public ResponseEntity<DriverResponseDTO> updateDriver(@PathVariable Integer id, @RequestBody DriverUpdateDTO dto) {
+        return driverService.update(id, dto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

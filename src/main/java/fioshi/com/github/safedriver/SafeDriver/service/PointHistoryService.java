@@ -2,10 +2,13 @@ package fioshi.com.github.safedriver.SafeDriver.service;
 
 import fioshi.com.github.safedriver.SafeDriver.dto.PointAverageDTO;
 import fioshi.com.github.safedriver.SafeDriver.dto.PointHistoryResponseDTO;
+import fioshi.com.github.safedriver.SafeDriver.model.Driver;
+import fioshi.com.github.safedriver.SafeDriver.model.PointHistory;
 import fioshi.com.github.safedriver.SafeDriver.model.enums.HistoryPeriod;
 import fioshi.com.github.safedriver.SafeDriver.repository.PointHistoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
@@ -20,6 +23,12 @@ public class PointHistoryService {
 
     @Autowired
     private PointHistoryRepository pointHistoryRepository;
+
+    @Transactional
+    public void addPoints(Driver driver, int points, String reason) {
+        PointHistory pointHistory = new PointHistory(driver, points, reason);
+        pointHistoryRepository.save(pointHistory);
+    }
 
     public PointHistoryResponseDTO getPointHistory(Integer driverId, HistoryPeriod period) {
         LocalDateTime now = LocalDateTime.now();
@@ -66,7 +75,6 @@ public class PointHistoryService {
                 label = String.format("%02d:00", value.intValue());
                 break;
             case WEEKLY:
-                // DAYOFWEEK in SQL is often 1-7 (Sun-Sat) or 1-7 (Mon-Sun). We adjust to Java's DayOfWeek enum.
                 label = DayOfWeek.of(value.intValue() == 1 ? 7 : value.intValue() - 1).getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
                 break;
             case MONTHLY:

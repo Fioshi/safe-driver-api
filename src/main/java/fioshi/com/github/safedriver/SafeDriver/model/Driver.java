@@ -7,12 +7,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+@Getter
+@Setter
 @Entity
 public class Driver implements UserDetails {
 
@@ -24,6 +28,12 @@ public class Driver implements UserDetails {
 
     @Column(unique = true)
     private String email;
+
+    private String telefone;
+
+    private String objetivoDeDirecao;
+
+    private String emailCorporativo;
 
     private String password;
 
@@ -41,86 +51,9 @@ public class Driver implements UserDetails {
     @OneToMany(mappedBy = "driver")
     private Set<DriverChallenge> driverChallenges;
 
-    // Getters and Setters
-
-    public Integer getId_motorista() {
-        return id_motorista;
-    }
-
-    public void setId_motorista(Integer id_motorista) {
-        this.id_motorista = id_motorista;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    @Override
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public int getPoints() {
-        return points;
-    }
-
-    public void setPoints(int points) {
-        this.points = points;
-    }
-
     public void addPoints(int points) {
         this.points += points;
     }
-
-    public LocalDateTime getData_cadastro() {
-        return data_cadastro;
-    }
-
-    public void setData_cadastro(LocalDateTime data_cadastro) {
-        this.data_cadastro = data_cadastro;
-    }
-
-    public String getOutros_dados() {
-        return outros_dados;
-    }
-
-    public void setOutros_dados(String outros_dados) {
-        this.outros_dados = outros_dados;
-    }
-
-    public List<Vehicle> getVehicles() {
-        return vehicles;
-    }
-
-    public void setVehicles(List<Vehicle> vehicles) {
-        this.vehicles = vehicles;
-    }
-
-    public Set<DriverChallenge> getDriverChallenges() {
-        return driverChallenges;
-    }
-
-    public void setDriverChallenges(Set<DriverChallenge> driverChallenges) {
-        this.driverChallenges = driverChallenges;
-    }
-
-    // UserDetails methods
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

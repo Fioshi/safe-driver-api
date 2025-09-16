@@ -1,10 +1,13 @@
 package fioshi.com.github.safedriver.SafeDriver.service;
 
+import fioshi.com.github.safedriver.SafeDriver.dto.DriverCreateDTO;
 import fioshi.com.github.safedriver.SafeDriver.dto.DriverResponseDTO;
-import fioshi.com.github.safedriver.SafeDriver.mapper.DriverMapper;
+import fioshi.com.github.safedriver.SafeDriver.dto.DriverUpdateDTO;
+import fioshi.com.github.safedriver.SafeDriver.mapper.SafeDriverMapper;
 import fioshi.com.github.safedriver.SafeDriver.model.Driver;
 import fioshi.com.github.safedriver.SafeDriver.repository.DriverRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,30 +20,35 @@ public class DriverService {
     @Autowired
     private DriverRepository driverRepository;
 
+    @Autowired
+    private SafeDriverMapper safeDriverMapper;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     public List<DriverResponseDTO> findAll() {
         return driverRepository.findAll().stream()
-                .map(DriverMapper::toDTO)
+                .map(safeDriverMapper::toDriverResponseDTO)
                 .collect(Collectors.toList());
     }
 
     public Optional<DriverResponseDTO> findById(Integer id) {
-        return driverRepository.findById(id).map(DriverMapper::toDTO);
+        return driverRepository.findById(id).map(safeDriverMapper::toDriverResponseDTO);
     }
 
-    public DriverResponseDTO save(Driver driver) {
+    public DriverResponseDTO save(DriverCreateDTO dto) {
+        Driver driver = safeDriverMapper.toDriver(dto);
+        driver.setPassword(passwordEncoder.encode(dto.getPassword()));
         Driver savedDriver = driverRepository.save(driver);
-        return DriverMapper.toDTO(savedDriver);
+        return safeDriverMapper.toDriverResponseDTO(savedDriver);
     }
 
-    public Optional<DriverResponseDTO> update(Integer id, Driver driverDetails) {
+    public Optional<DriverResponseDTO> update(Integer id, DriverUpdateDTO dto) {
         return driverRepository.findById(id)
                 .map(driver -> {
-                    driver.setNome(driverDetails.getNome());
-                    driver.setEmail(driverDetails.getEmail());
-                    driver.setData_cadastro(driverDetails.getData_cadastro());
-                    driver.setOutros_dados(driverDetails.getOutros_dados());
+                    safeDriverMapper.updateDriverFromDto(dto, driver);
                     Driver updatedDriver = driverRepository.save(driver);
-                    return DriverMapper.toDTO(updatedDriver);
+                    return safeDriverMapper.toDriverResponseDTO(updatedDriver);
                 });
     }
 

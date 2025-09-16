@@ -1,6 +1,7 @@
 package fioshi.com.github.safedriver.SafeDriver.controller;
 
 import fioshi.com.github.safedriver.SafeDriver.dto.DriverProfileDTO;
+import fioshi.com.github.safedriver.SafeDriver.dto.DriverChallengeDetailsDTO;
 import fioshi.com.github.safedriver.SafeDriver.model.Driver;
 import fioshi.com.github.safedriver.SafeDriver.service.ChallengeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,9 +10,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/challenges")
-public class ChallengeController {
+@RequestMapping("/api/drivers")
+public class DriverProfileController {
 
     @Autowired
     private ChallengeService challengeService;
@@ -25,15 +28,18 @@ public class ChallengeController {
         throw new IllegalStateException("User not authenticated or driver ID not available.");
     }
 
-    @PostMapping("/{id}/redeem")
-    public ResponseEntity<DriverProfileDTO> redeemChallengePoints(@PathVariable("id") Integer challengeId) {
+    @GetMapping("/profile")
+    public ResponseEntity<DriverProfileDTO> getDriverProfile() {
         Integer driverId = getCurrentDriverId();
-        try {
-            return challengeService.redeemPoints(driverId, challengeId)
-                    .map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(null);
-        }
+        return challengeService.getProfile(driverId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/challenges")
+    public ResponseEntity<List<DriverChallengeDetailsDTO>> getDriverChallenges() {
+        Integer driverId = getCurrentDriverId();
+        List<DriverChallengeDetailsDTO> challenges = challengeService.getUserChallenges(driverId);
+        return ResponseEntity.ok(challenges);
     }
 }

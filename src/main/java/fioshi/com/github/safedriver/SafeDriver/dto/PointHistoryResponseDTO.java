@@ -14,8 +14,6 @@ public class PointHistoryResponseDTO {
         this.averages = averages;
     }
 
-    // Getters and Setters
-
     public String getPeriod() {
         return period;
     }

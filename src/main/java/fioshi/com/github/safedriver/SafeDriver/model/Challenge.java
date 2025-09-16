@@ -19,8 +19,6 @@ public class Challenge {
     @OneToMany(mappedBy = "challenge")
     private Set<DriverChallenge> driverChallenges;
 
-    // Getters and Setters
-
     public Integer getId() {
         return id;
     }

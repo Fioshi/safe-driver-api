@@ -10,8 +10,6 @@ public class PointAverageDTO {
         this.average = average;
     }
 
-    // Getters and Setters
-
     public String getLabel() {
         return label;
     }

@@ -1,10 +1,11 @@
 package fioshi.com.github.safedriver.SafeDriver.controller;
 
+import fioshi.com.github.safedriver.SafeDriver.dto.DriverCreateDTO;
+import fioshi.com.github.safedriver.SafeDriver.mapper.SafeDriverMapper;
 import fioshi.com.github.safedriver.SafeDriver.model.Driver;
 import fioshi.com.github.safedriver.SafeDriver.repository.DriverRepository;
 import fioshi.com.github.safedriver.SafeDriver.security.dto.JwtAuthenticationResponse;
 import fioshi.com.github.safedriver.SafeDriver.security.dto.LoginRequest;
-import fioshi.com.github.safedriver.SafeDriver.security.dto.SignUpRequest;
 import fioshi.com.github.safedriver.SafeDriver.security.jwt.TokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,9 @@ public class AuthController {
     @Autowired
     private TokenProvider tokenProvider;
 
+    @Autowired
+    private SafeDriverMapper safeDriverMapper;
+
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
 
@@ -54,16 +58,13 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@RequestBody SignUpRequest signUpRequest) {
-        if (driverRepository.findByEmail(signUpRequest.getEmail()).isPresent()) {
+    public ResponseEntity<?> registerUser(@RequestBody DriverCreateDTO driverCreateDTO) {
+        if (driverRepository.findByEmail(driverCreateDTO.getEmail()).isPresent()) {
             return new ResponseEntity<>("Email Address already in use!", HttpStatus.BAD_REQUEST);
         }
 
-        // Creating user's account
-        Driver driver = new Driver();
-        driver.setNome(signUpRequest.getNome());
-        driver.setEmail(signUpRequest.getEmail());
-        driver.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
+        Driver driver = safeDriverMapper.toDriver(driverCreateDTO);
+        driver.setPassword(passwordEncoder.encode(driverCreateDTO.getPassword()));
         driver.setData_cadastro(LocalDateTime.now());
 
         driverRepository.save(driver);

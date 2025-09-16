@@ -7,9 +7,7 @@ public class VehicleResponseDTO {
     private String modelo;
     private Integer ano;
     private String caracteristicas;
-    private Integer driverId; // To avoid circular reference
-
-    // Getters and Setters
+    private Integer driverId;
 
     public Integer getId_veiculo() {
         return id_veiculo;

@@ -11,14 +11,11 @@ public class VehicleMapper {
         }
 
         VehicleResponseDTO dto = new VehicleResponseDTO();
-        dto.setId_veiculo(vehicle.getId_veiculo());
-        dto.setMarca(vehicle.getMarca());
-        dto.setModelo(vehicle.getModelo());
-        dto.setAno(vehicle.getAno());
-        dto.setCaracteristicas(vehicle.getCaracteristicas());
-        if (vehicle.getDriver() != null) {
-            dto.setDriverId(vehicle.getDriver().getId_motorista());
+        if (vehicle.getId() != null) {
+            dto.setId_veiculo(vehicle.getId().intValue());
         }
+        dto.setMarca(vehicle.getBrand());
+        dto.setModelo(vehicle.getModel());
 
         return dto;
     }

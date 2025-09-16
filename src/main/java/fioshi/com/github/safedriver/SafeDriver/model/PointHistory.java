@@ -16,15 +16,16 @@ public class PointHistory {
 
     private int points;
 
-    private LocalDateTime timestamp;
+    private String reason;
 
-    // Constructors, Getters, and Setters
+    private LocalDateTime timestamp;
 
     public PointHistory() {}
 
-    public PointHistory(Driver driver, int points) {
+    public PointHistory(Driver driver, int points, String reason) {
         this.driver = driver;
         this.points = points;
+        this.reason = reason;
         this.timestamp = LocalDateTime.now();
     }
 
@@ -50,6 +51,14 @@ public class PointHistory {
 
     public void setPoints(int points) {
         this.points = points;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
     }
 
     public LocalDateTime getTimestamp() {
