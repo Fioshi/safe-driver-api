@@ -1,39 +1,42 @@
 package fioshi.com.github.safedriver.SafeDriver.controller;
 
-import fioshi.com.github.safedriver.SafeDriver.dto.TripAnalysisRequestDTO;
-import fioshi.com.github.safedriver.SafeDriver.dto.TripErrorResponseDTO;
+import fioshi.com.github.safedriver.SafeDriver.dto.TripTelemetryRequestDTO;
 import fioshi.com.github.safedriver.SafeDriver.dto.TripSummaryResponseDTO;
 import fioshi.com.github.safedriver.SafeDriver.model.Driver;
 import fioshi.com.github.safedriver.SafeDriver.service.TripService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/trips")
 public class TripController {
 
-    private final TripService tripService;
-
     @Autowired
-    public TripController(TripService tripService) {
-        this.tripService = tripService;
+    private TripService tripService;
+
+    private Integer getCurrentDriverId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof Driver) {
+            Driver driver = (Driver) authentication.getPrincipal();
+            return driver.getId_motorista();
+        }
+        throw new IllegalStateException("User not authenticated or driver ID not available.");
     }
 
     @PostMapping("/analyze")
-    public ResponseEntity<?> analyzeTrip(@RequestBody TripAnalysisRequestDTO request, @AuthenticationPrincipal Driver driver) {
-        if (driver == null) {
-            return ResponseEntity.status(401).body(new TripErrorResponseDTO("Usuário não autenticado."));
-        }
-        Integer driverId = driver.getId_motorista();
+    public ResponseEntity<TripSummaryResponseDTO> analyzeTrip(@RequestBody TripTelemetryRequestDTO request) {
+        Integer driverId = getCurrentDriverId();
         try {
-            TripSummaryResponseDTO response = tripService.analyzeTrip(request, driverId);
-            return ResponseEntity.ok(response);
+            TripSummaryResponseDTO summary = tripService.analyzeTrip(request, driverId);
+            return ResponseEntity.ok(summary);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new TripErrorResponseDTO(e.getMessage()));
-        } catch (Exception e) {
-             return ResponseEntity.internalServerError().body(new TripErrorResponseDTO("Erro interno ao analisar a viagem."));
+            return ResponseEntity.badRequest().build();
         }
     }
 }

@@ -1,16 +1,15 @@
 package fioshi.com.github.safedriver.SafeDriver.controller;
 
 import fioshi.com.github.safedriver.SafeDriver.dto.DriverProfileDTO;
-import fioshi.com.github.safedriver.SafeDriver.dto.DriverChallengeDetailsDTO;
 import fioshi.com.github.safedriver.SafeDriver.model.Driver;
 import fioshi.com.github.safedriver.SafeDriver.service.ChallengeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/drivers")
@@ -34,12 +33,5 @@ public class DriverProfileController {
         return challengeService.getProfile(driverId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/challenges")
-    public ResponseEntity<List<DriverChallengeDetailsDTO>> getDriverChallenges() {
-        Integer driverId = getCurrentDriverId();
-        List<DriverChallengeDetailsDTO> challenges = challengeService.getUserChallenges(driverId);
-        return ResponseEntity.ok(challenges);
     }
 }

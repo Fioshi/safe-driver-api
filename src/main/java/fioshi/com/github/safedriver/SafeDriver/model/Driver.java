@@ -6,7 +6,6 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -47,9 +46,6 @@ public class Driver implements UserDetails {
     @OneToMany(mappedBy = "driver", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Vehicle> vehicles;
-
-    @OneToMany(mappedBy = "driver")
-    private Set<DriverChallenge> driverChallenges;
 
     public void addPoints(int points) {
         this.points += points;

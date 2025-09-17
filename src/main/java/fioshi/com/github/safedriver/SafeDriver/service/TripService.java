@@ -3,6 +3,7 @@ package fioshi.com.github.safedriver.SafeDriver.service;
 import fioshi.com.github.safedriver.SafeDriver.dto.TelemetryPoint;
 import fioshi.com.github.safedriver.SafeDriver.dto.TripTelemetryRequestDTO;
 import fioshi.com.github.safedriver.SafeDriver.dto.TripSummaryResponseDTO;
+import fioshi.com.github.safedriver.SafeDriver.mapper.SafeDriverMapper;
 import fioshi.com.github.safedriver.SafeDriver.model.Driver;
 import fioshi.com.github.safedriver.SafeDriver.model.Trip;
 import fioshi.com.github.safedriver.SafeDriver.model.Vehicle;
@@ -31,10 +32,10 @@ public class TripService {
     private TripRepository tripRepository;
 
     @Autowired
-    private ChallengeService challengeService;
+    private PointHistoryService pointHistoryService;
 
     @Autowired
-    private PointHistoryService pointHistoryService;
+    private SafeDriverMapper mapper;
 
     @Transactional
     public TripSummaryResponseDTO analyzeTrip(TripTelemetryRequestDTO request, Integer driverId) {
@@ -44,8 +45,8 @@ public class TripService {
                 .orElseThrow(() -> new IllegalArgumentException("Vehicle not found"));
 
         List<TelemetryPoint> telemetryPoints = request.getTelemetryPoints();
-        if (telemetryPoints == null || telemetryPoints.isEmpty()) {
-            throw new IllegalArgumentException("Telemetry points cannot be empty");
+        if (telemetryPoints == null || telemetryPoints.size() < 2) {
+            throw new IllegalArgumentException("Telemetry points cannot be empty or have less than two points");
         }
 
         telemetryPoints.sort(Comparator.comparing(TelemetryPoint::getTimestamp));
@@ -53,39 +54,18 @@ public class TripService {
         LocalDateTime startTime = telemetryPoints.get(0).getTimestamp();
         LocalDateTime endTime = telemetryPoints.get(telemetryPoints.size() - 1).getTimestamp();
 
+        // Calculate total distance from telemetry points
         double totalDistanceKm = 0.0;
-        int hardBrakingCount = 0;
-        int suddenAccelerationCount = 0;
-        int speedingEventsCount = 0;
-
-        final double HARD_BRAKING_THRESHOLD_KMH_PER_SEC = 10.0; 
-        final double SUDDEN_ACCELERATION_THRESHOLD_KMH_PER_SEC = 8.0; 
-        final double SPEED_LIMIT_KMH = 80.0; 
-
         for (int i = 0; i < telemetryPoints.size() - 1; i++) {
             TelemetryPoint p1 = telemetryPoints.get(i);
             TelemetryPoint p2 = telemetryPoints.get(i + 1);
-
             totalDistanceKm += haversineDistance(p1.getLatitude(), p1.getLongitude(), p2.getLatitude(), p2.getLongitude());
-
-            long timeDiffSeconds = ChronoUnit.SECONDS.between(p1.getTimestamp(), p2.getTimestamp());
-
-            if (timeDiffSeconds > 0) {
-                double speedDiffKmH = p2.getSpeedKmH() - p1.getSpeedKmH();
-                double accelerationKmHPerSec = speedDiffKmH / timeDiffSeconds;
-
-                if (accelerationKmHPerSec < -HARD_BRAKING_THRESHOLD_KMH_PER_SEC) {
-                    hardBrakingCount++;
-                }
-                if (accelerationKmHPerSec > SUDDEN_ACCELERATION_THRESHOLD_KMH_PER_SEC) {
-                    suddenAccelerationCount++;
-                }
-            }
-
-            if (p2.getSpeedKmH() > SPEED_LIMIT_KMH) {
-                speedingEventsCount++;
-            }
         }
+
+        // Get pre-processed event counts directly from the request
+        int hardBrakingCount = request.getHardBrakingCount();
+        int suddenAccelerationCount = request.getSuddenAccelerationCount();
+        int speedingEventsCount = request.getSpeedingEventsCount();
 
         long durationSeconds = ChronoUnit.SECONDS.between(startTime, endTime);
         double averageSpeedKmH = (durationSeconds > 0) ? (totalDistanceKm / durationSeconds) * 3600 : 0;
@@ -112,27 +92,14 @@ public class TripService {
         driverRepository.save(driver);
         pointHistoryService.addPoints(driver, pointsEarned, "Pontos ganhos em viagem");
 
-        challengeService.updateChallengesForTrip(driverId, totalDistanceKm, hardBrakingCount, suddenAccelerationCount, speedingEventsCount);
-
-        TripSummaryResponseDTO response = new TripSummaryResponseDTO();
-        response.setTripId(trip.getId());
-        response.setStartTime(trip.getStartTime());
-        response.setEndTime(trip.getEndTime());
-        response.setTotalDistanceKm(totalDistanceKm);
-        response.setDurationSeconds(durationSeconds);
-        response.setAverageSpeedKmH(averageSpeedKmH);
-        response.setHardBrakingCount(hardBrakingCount);
-        response.setSuddenAccelerationCount(suddenAccelerationCount);
-        response.setSpeedingEventsCount(speedingEventsCount);
-        response.setPerformanceScore(performanceScore);
-        response.setPointsEarned(pointsEarned);
+        TripSummaryResponseDTO response = mapper.toTripSummaryResponseDTO(trip);
         response.setMessage("Viagem analisada e pontos atribuídos com sucesso!");
 
         return response;
     }
 
     private double haversineDistance(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371; 
+        final int R = 6371; // Radius of earth in kilometers
 
         double latDistance = Math.toRadians(lat2 - lat1);
         double lonDistance = Math.toRadians(lon2 - lon1);
@@ -142,22 +109,22 @@ public class TripService {
                 * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-        return R * c; 
+        return R * c;
     }
 
     private int calculatePerformanceScore(double totalDistanceKm, int hardBrakingCount, int suddenAccelerationCount, int speedingEventsCount) {
-        int score = 100; 
+        int score = 100;
 
-        score -= (hardBrakingCount * 15); 
+        score -= (hardBrakingCount * 15);
         score -= (suddenAccelerationCount * 10);
         score -= (speedingEventsCount * 5);
 
         if (score < 0) score = 0;
-        if (score > 100) score = 100; 
+        if (score > 100) score = 100;
         return score;
     }
 
     private int calculatePointsEarned(int performanceScore) {
-        return (int) (performanceScore * 0.75); 
+        return (int) (performanceScore * 0.75);
     }
 }
