@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class DriverProfileDTO {
+public class UserProfileDTO {
 
     private Integer totalPoints;
     private int rankingPosition;

@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import fioshi.com.github.safedriver.SafeDriver.model.Driver;
+import fioshi.com.github.safedriver.SafeDriver.model.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -21,7 +21,7 @@ public class TokenProvider {
     private long jwtExpirationInMs;
 
     public String generateToken(Authentication authentication) {
-        Driver driverPrincipal = (Driver) authentication.getPrincipal();
+        User driverPrincipal = (User) authentication.getPrincipal();
 
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);

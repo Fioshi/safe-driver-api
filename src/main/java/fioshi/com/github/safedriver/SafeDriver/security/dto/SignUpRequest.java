@@ -5,7 +5,6 @@ public class SignUpRequest {
     private String email;
     private String password;
 
-    // Getters and Setters
     public String getNome() {
         return nome;
     }

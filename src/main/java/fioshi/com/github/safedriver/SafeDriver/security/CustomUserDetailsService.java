@@ -1,6 +1,7 @@
 package fioshi.com.github.safedriver.SafeDriver.security;
 
-import fioshi.com.github.safedriver.SafeDriver.repository.DriverRepository;
+import fioshi.com.github.safedriver.SafeDriver.model.User;
+import fioshi.com.github.safedriver.SafeDriver.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -12,12 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomUserDetailsService implements UserDetailsService {
 
     @Autowired
-    private DriverRepository driverRepository;
+    private UserRepository userRepository;
 
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        return driverRepository.findByEmail(email)
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email : " + email));
     }
 }

@@ -1,36 +1,60 @@
 package fioshi.com.github.safedriver.SafeDriver.mapper;
 
 import fioshi.com.github.safedriver.SafeDriver.dto.*;
-import fioshi.com.github.safedriver.SafeDriver.model.Driver;
+import fioshi.com.github.safedriver.SafeDriver.model.User;
 import fioshi.com.github.safedriver.SafeDriver.model.Trip;
-import fioshi.com.github.safedriver.SafeDriver.model.Vehicle;
+import fioshi.com.github.safedriver.SafeDriver.model.TripEvent;
+import fioshi.com.github.safedriver.SafeDriver.model.Challenge;
+import fioshi.com.github.safedriver.SafeDriver.model.UserChallenge;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface SafeDriverMapper {
 
-    // Driver
-    DriverResponseDTO toDriverResponseDTO(Driver driver);
-    Driver toDriver(DriverCreateDTO dto);
-    void updateDriverFromDto(DriverUpdateDTO dto, @MappingTarget Driver driver);
+    // User mappings
+    UserResponseDTO toUserResponseDTO(User user);
 
-    // Driver Profile
+    @Mapping(source = "password", target = "hashedPassword")
+    User toUser(UserCreateDTO dto);
+
+    void updateUserFromDto(UserUpdateDTO dto, @MappingTarget User user);
+
+    // User Profile
     @Mapping(source = "points", target = "totalPoints")
     @Mapping(target = "rankingPosition", ignore = true)
     @Mapping(target = "completedChallengesCount", ignore = true)
-    DriverProfileDTO toDriverProfileDTO(Driver driver);
-
-    // Vehicle
-    Vehicle toVehicle(VehicleDTO dto);
-    VehicleDTO toVehicleDTO(Vehicle vehicle);
-    List<VehicleDTO> toVehicleDTO(List<Vehicle> vehicles);
+    UserProfileDTO toUserProfileDTO(User user);
 
     // Trip
-    @Mapping(source = "id", target = "tripId")
+    @Mapping(source = "tripId", target = "tripId")
     TripSummaryResponseDTO toTripSummaryResponseDTO(Trip trip);
+
+    List<TripSummaryResponseDTO> toTripSummaryResponseDTOList(List<Trip> trips);
+
+    // TripEvent
+    TripEvent toTripEvent(TripEventDTO dto);
+
+    // Custom mapping for Map<String, Object> to String and vice-versa for details field
+    default String map(Map<String, Object> details) {
+        return details != null ? details.toString() : null;
+    }
+
+    default Map<String, Object> map(String details) {
+        return details != null ? new HashMap<>() : null;
+    }
+
+    // Challenge
+    Challenge toChallenge(ChallengeDTO dto);
+    ChallengeDTO toChallengeDTO(Challenge challenge);
+
+    // UserChallenge
+    UserChallenge toUserChallenge(UserChallengeProgressDTO dto);
+    UserChallengeProgressDTO toUserChallengeProgressDTO(UserChallenge userChallenge);
 }

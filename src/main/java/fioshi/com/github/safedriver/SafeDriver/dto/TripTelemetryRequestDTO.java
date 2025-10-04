@@ -8,11 +8,6 @@ import java.util.List;
 @Setter
 public class TripTelemetryRequestDTO {
 
-    private Long vehicleId;
     private List<TelemetryPoint> telemetryPoints;
-
-    // Event counts pre-processed by the app
-    private int hardBrakingCount;
-    private int suddenAccelerationCount;
-    private int speedingEventsCount;
+    private List<TripEventDTO> tripEvents;
 }

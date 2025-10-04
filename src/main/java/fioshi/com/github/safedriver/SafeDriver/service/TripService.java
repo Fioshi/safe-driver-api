@@ -4,45 +4,51 @@ import fioshi.com.github.safedriver.SafeDriver.dto.TelemetryPoint;
 import fioshi.com.github.safedriver.SafeDriver.dto.TripTelemetryRequestDTO;
 import fioshi.com.github.safedriver.SafeDriver.dto.TripSummaryResponseDTO;
 import fioshi.com.github.safedriver.SafeDriver.mapper.SafeDriverMapper;
-import fioshi.com.github.safedriver.SafeDriver.model.Driver;
+import fioshi.com.github.safedriver.SafeDriver.model.User;
 import fioshi.com.github.safedriver.SafeDriver.model.Trip;
-import fioshi.com.github.safedriver.SafeDriver.model.Vehicle;
-import fioshi.com.github.safedriver.SafeDriver.repository.DriverRepository;
+import fioshi.com.github.safedriver.SafeDriver.model.TripEvent;
+import fioshi.com.github.safedriver.SafeDriver.repository.UserRepository;
 import fioshi.com.github.safedriver.SafeDriver.repository.TripRepository;
-import fioshi.com.github.safedriver.SafeDriver.repository.VehicleRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import fioshi.com.github.safedriver.SafeDriver.repository.TripEventRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class TripService {
 
-    @Autowired
-    private DriverRepository driverRepository;
+    private final UserRepository userRepository;
+    private final TripRepository tripRepository;
+    private final PointHistoryService pointHistoryService;
+    private final SafeDriverMapper mapper;
+    private final TripEventRepository tripEventRepository;
+//    private final GeminiAnalysisService geminiAnalysisService; // Injetado
 
-    @Autowired
-    private VehicleRepository vehicleRepository;
-
-    @Autowired
-    private TripRepository tripRepository;
-
-    @Autowired
-    private PointHistoryService pointHistoryService;
-
-    @Autowired
-    private SafeDriverMapper mapper;
+    public TripService(UserRepository userRepository,
+                       TripRepository tripRepository,
+                       PointHistoryService pointHistoryService,
+                       SafeDriverMapper mapper,
+                       TripEventRepository tripEventRepository) {
+//                       GeminiAnalysisService geminiAnalysisService) { // Adicionado ao construtor
+        this.userRepository = userRepository;
+        this.tripRepository = tripRepository;
+        this.pointHistoryService = pointHistoryService;
+        this.mapper = mapper;
+        this.tripEventRepository = tripEventRepository;
+//        this.geminiAnalysisService = geminiAnalysisService;
+    }
 
     @Transactional
-    public TripSummaryResponseDTO analyzeTrip(TripTelemetryRequestDTO request, Integer driverId) {
-        Driver driver = driverRepository.findById(driverId)
-                .orElseThrow(() -> new IllegalArgumentException("Driver not found"));
-        Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
-                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found"));
+    public TripSummaryResponseDTO analyzeTrip(TripTelemetryRequestDTO request, UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         List<TelemetryPoint> telemetryPoints = request.getTelemetryPoints();
         if (telemetryPoints == null || telemetryPoints.size() < 2) {
@@ -51,55 +57,66 @@ public class TripService {
 
         telemetryPoints.sort(Comparator.comparing(TelemetryPoint::getTimestamp));
 
-        LocalDateTime startTime = telemetryPoints.get(0).getTimestamp();
-        LocalDateTime endTime = telemetryPoints.get(telemetryPoints.size() - 1).getTimestamp();
+        OffsetDateTime startTime = telemetryPoints.get(0).getTimestamp().atOffset(OffsetDateTime.now().getOffset());
+        OffsetDateTime endTime = telemetryPoints.get(telemetryPoints.size() - 1).getTimestamp().atOffset(OffsetDateTime.now().getOffset());
+        TelemetryPoint lastTelemetryPoint = telemetryPoints.get(telemetryPoints.size() - 1);
 
-        // Calculate total distance from telemetry points
-        double totalDistanceKm = 0.0;
+        BigDecimal totalDistanceKm = BigDecimal.ZERO;
         for (int i = 0; i < telemetryPoints.size() - 1; i++) {
             TelemetryPoint p1 = telemetryPoints.get(i);
             TelemetryPoint p2 = telemetryPoints.get(i + 1);
-            totalDistanceKm += haversineDistance(p1.getLatitude(), p1.getLongitude(), p2.getLatitude(), p2.getLongitude());
+            totalDistanceKm = totalDistanceKm.add(BigDecimal.valueOf(haversineDistance(p1.getLatitude(), p1.getLongitude(), p2.getLatitude(), p2.getLongitude())));
         }
 
-        // Get pre-processed event counts directly from the request
-        int hardBrakingCount = request.getHardBrakingCount();
-        int suddenAccelerationCount = request.getSuddenAccelerationCount();
-        int speedingEventsCount = request.getSpeedingEventsCount();
-
-        long durationSeconds = ChronoUnit.SECONDS.between(startTime, endTime);
-        double averageSpeedKmH = (durationSeconds > 0) ? (totalDistanceKm / durationSeconds) * 3600 : 0;
-
-        int performanceScore = calculatePerformanceScore(totalDistanceKm, hardBrakingCount, suddenAccelerationCount, speedingEventsCount);
+        int performanceScore = calculatePerformanceScore(totalDistanceKm, request.getTripEvents());
         int pointsEarned = calculatePointsEarned(performanceScore);
 
         Trip trip = new Trip();
-        trip.setDriver(driver);
-        trip.setVehicle(vehicle);
+        trip.setUser(user);
         trip.setStartTime(startTime);
         trip.setEndTime(endTime);
-        trip.setTotalDistanceKm(totalDistanceKm);
-        trip.setDurationSeconds(durationSeconds);
-        trip.setAverageSpeedKmH(averageSpeedKmH);
-        trip.setHardBrakingCount(hardBrakingCount);
-        trip.setSuddenAccelerationCount(suddenAccelerationCount);
-        trip.setSpeedingEventsCount(speedingEventsCount);
-        trip.setPerformanceScore(performanceScore);
+        trip.setDistanceKm(totalDistanceKm);
+        trip.setEconomySavedBrl(calculateEconomySavedBrl(totalDistanceKm));
         trip.setPointsEarned(pointsEarned);
+        trip.setEndLatitude(lastTelemetryPoint.getLatitude() != null ? BigDecimal.valueOf(lastTelemetryPoint.getLatitude()) : null);
+        trip.setEndLongitude(lastTelemetryPoint.getLongitude() != null ? BigDecimal.valueOf(lastTelemetryPoint.getLongitude()) : null);
         tripRepository.save(trip);
 
-        driver.addPoints(pointsEarned);
-        driverRepository.save(driver);
-        pointHistoryService.addPoints(driver, pointsEarned, "Pontos ganhos em viagem");
+        if (request.getTripEvents() != null && !request.getTripEvents().isEmpty()) {
+            List<TripEvent> tripEvents = request.getTripEvents().stream()
+                    .map(mapper::toTripEvent)
+                    .peek(event -> event.setTrip(trip))
+                    .collect(Collectors.toList());
+            trip.setTripEvents(tripEvents);
+            tripEventRepository.saveAll(tripEvents);
+        }
+
+        // Gerar e salvar o feedback do Gemini
+//        String feedback = geminiAnalysisService.analyzeTripAndProvideFeedback(trip);
+//        trip.setFeedbackText(feedback);
+        tripRepository.save(trip); // Salva novamente para incluir o feedback
+
+        user.addPoints(pointsEarned);
+        userRepository.save(user);
+        pointHistoryService.addPoints(user, pointsEarned, "Pontos ganhos em viagem");
 
         TripSummaryResponseDTO response = mapper.toTripSummaryResponseDTO(trip);
+//        response.setFeedbackText(feedback); // Garante que o feedback esteja na resposta
         response.setMessage("Viagem analisada e pontos atribuídos com sucesso!");
 
         return response;
     }
 
+    @Transactional(readOnly = true)
+    public List<TripSummaryResponseDTO> getTripsByUserId(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        List<Trip> trips = tripRepository.findByUser(user);
+        return mapper.toTripSummaryResponseDTOList(trips);
+    }
+
     private double haversineDistance(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371; // Radius of earth in kilometers
+        final int R = 6371;
 
         double latDistance = Math.toRadians(lat2 - lat1);
         double lonDistance = Math.toRadians(lon2 - lon1);
@@ -112,8 +129,31 @@ public class TripService {
         return R * c;
     }
 
-    private int calculatePerformanceScore(double totalDistanceKm, int hardBrakingCount, int suddenAccelerationCount, int speedingEventsCount) {
+    private BigDecimal calculateEconomySavedBrl(BigDecimal totalDistanceKm) {
+        return totalDistanceKm.multiply(BigDecimal.valueOf(0.1));
+    }
+
+    private int calculatePerformanceScore(BigDecimal totalDistanceKm, List<fioshi.com.github.safedriver.SafeDriver.dto.TripEventDTO> tripEvents) {
         int score = 100;
+        int hardBrakingCount = 0;
+        int suddenAccelerationCount = 0;
+        int speedingEventsCount = 0;
+
+        if (tripEvents != null) {
+            for (fioshi.com.github.safedriver.SafeDriver.dto.TripEventDTO event : tripEvents) {
+                switch (event.getEventType()) {
+                    case "frenagem_brusca":
+                        hardBrakingCount++;
+                        break;
+                    case "aceleracao_brusca":
+                        suddenAccelerationCount++;
+                        break;
+                    case "excesso_velocidade":
+                        speedingEventsCount++;
+                        break;
+                }
+            }
+        }
 
         score -= (hardBrakingCount * 15);
         score -= (suddenAccelerationCount * 10);

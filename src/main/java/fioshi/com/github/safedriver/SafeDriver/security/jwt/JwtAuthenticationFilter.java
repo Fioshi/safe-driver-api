@@ -1,6 +1,6 @@
 package fioshi.com.github.safedriver.SafeDriver.security.jwt;
 
-import fioshi.com.github.safedriver.SafeDriver.service.DriverService;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

@@ -2,11 +2,10 @@ package fioshi.com.github.safedriver.SafeDriver.service;
 
 import fioshi.com.github.safedriver.SafeDriver.dto.PointAverageDTO;
 import fioshi.com.github.safedriver.SafeDriver.dto.PointHistoryResponseDTO;
-import fioshi.com.github.safedriver.SafeDriver.model.Driver;
+import fioshi.com.github.safedriver.SafeDriver.model.User;
 import fioshi.com.github.safedriver.SafeDriver.model.PointHistory;
 import fioshi.com.github.safedriver.SafeDriver.model.enums.HistoryPeriod;
 import fioshi.com.github.safedriver.SafeDriver.repository.PointHistoryRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,21 +15,25 @@ import java.time.Month;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 public class PointHistoryService {
 
-    @Autowired
-    private PointHistoryRepository pointHistoryRepository;
+    private final PointHistoryRepository pointHistoryRepository;
+
+    public PointHistoryService(PointHistoryRepository pointHistoryRepository) {
+        this.pointHistoryRepository = pointHistoryRepository;
+    }
 
     @Transactional
-    public void addPoints(Driver driver, int points, String reason) {
-        PointHistory pointHistory = new PointHistory(driver, points, reason);
+    public void addPoints(User user, int points, String reason) {
+        PointHistory pointHistory = new PointHistory(user, points, reason);
         pointHistoryRepository.save(pointHistory);
     }
 
-    public PointHistoryResponseDTO getPointHistory(Integer driverId, HistoryPeriod period) {
+    public PointHistoryResponseDTO getPointHistory(UUID userId, HistoryPeriod period) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDate;
         List<Object[]> results;
@@ -38,19 +41,19 @@ public class PointHistoryService {
         switch (period) {
             case DAILY:
                 startDate = now.minusDays(1);
-                results = pointHistoryRepository.findDailyAverage(driverId, startDate);
+                results = pointHistoryRepository.findDailyAverage(userId, startDate);
                 break;
             case WEEKLY:
                 startDate = now.minusWeeks(1);
-                results = pointHistoryRepository.findWeeklyAverage(driverId, startDate);
+                results = pointHistoryRepository.findWeeklyAverage(userId, startDate);
                 break;
             case MONTHLY:
                 startDate = now.minusMonths(1);
-                results = pointHistoryRepository.findMonthlyAverage(driverId, startDate);
+                results = pointHistoryRepository.findMonthlyAverage(userId, startDate);
                 break;
             case YEARLY:
                 startDate = now.minusYears(1);
-                results = pointHistoryRepository.findYearlyAverage(driverId, startDate);
+                results = pointHistoryRepository.findYearlyAverage(userId, startDate);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid period specified");
@@ -60,7 +63,7 @@ public class PointHistoryService {
                 .map(result -> convertToObjectDTO(result, period))
                 .collect(Collectors.toList());
 
-        Double overallAverage = pointHistoryRepository.findOverallAverage(driverId, startDate);
+        Double overallAverage = pointHistoryRepository.findOverallAverage(userId, startDate);
 
         return new PointHistoryResponseDTO(period.name(), overallAverage, averages);
     }
