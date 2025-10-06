@@ -29,20 +29,17 @@ public class TripService {
     private final PointHistoryService pointHistoryService;
     private final SafeDriverMapper mapper;
     private final TripEventRepository tripEventRepository;
-//    private final GeminiAnalysisService geminiAnalysisService; // Injetado
 
     public TripService(UserRepository userRepository,
                        TripRepository tripRepository,
                        PointHistoryService pointHistoryService,
                        SafeDriverMapper mapper,
                        TripEventRepository tripEventRepository) {
-//                       GeminiAnalysisService geminiAnalysisService) { // Adicionado ao construtor
         this.userRepository = userRepository;
         this.tripRepository = tripRepository;
         this.pointHistoryService = pointHistoryService;
         this.mapper = mapper;
         this.tripEventRepository = tripEventRepository;
-//        this.geminiAnalysisService = geminiAnalysisService;
     }
 
     @Transactional
@@ -91,9 +88,6 @@ public class TripService {
             tripEventRepository.saveAll(tripEvents);
         }
 
-        // Gerar e salvar o feedback do Gemini
-//        String feedback = geminiAnalysisService.analyzeTripAndProvideFeedback(trip);
-//        trip.setFeedbackText(feedback);
         tripRepository.save(trip); // Salva novamente para incluir o feedback
 
         user.addPoints(pointsEarned);
@@ -101,7 +95,6 @@ public class TripService {
         pointHistoryService.addPoints(user, pointsEarned, "Pontos ganhos em viagem");
 
         TripSummaryResponseDTO response = mapper.toTripSummaryResponseDTO(trip);
-//        response.setFeedbackText(feedback); // Garante que o feedback esteja na resposta
         response.setMessage("Viagem analisada e pontos atribuídos com sucesso!");
 
         return response;

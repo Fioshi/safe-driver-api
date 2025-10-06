@@ -19,6 +19,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/users")
+@CrossOrigin(origins = "*")
 public class UserController {
 
     private final UserService userService;
@@ -45,8 +46,9 @@ public class UserController {
         return userService.findAll();
     }
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable UUID userId) {
+    @GetMapping("/loged")
+    public ResponseEntity<UserResponseDTO> getUserById() {
+        UUID userId = getCurrentUserId();
         return userService.findById(userId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

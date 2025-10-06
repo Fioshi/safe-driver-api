@@ -18,43 +18,31 @@ import java.util.HashMap;
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface SafeDriverMapper {
 
-    // User mappings
+    // ... (todos os outros mapeamentos permanecem iguais)
     UserResponseDTO toUserResponseDTO(User user);
-
     @Mapping(source = "password", target = "hashedPassword")
     User toUser(UserCreateDTO dto);
-
     void updateUserFromDto(UserUpdateDTO dto, @MappingTarget User user);
-
-    // User Profile
     @Mapping(source = "points", target = "totalPoints")
     @Mapping(target = "rankingPosition", ignore = true)
     @Mapping(target = "completedChallengesCount", ignore = true)
     UserProfileDTO toUserProfileDTO(User user);
-
-    // Trip
     @Mapping(source = "tripId", target = "tripId")
     TripSummaryResponseDTO toTripSummaryResponseDTO(Trip trip);
-
     List<TripSummaryResponseDTO> toTripSummaryResponseDTOList(List<Trip> trips);
-
-    // TripEvent
     TripEvent toTripEvent(TripEventDTO dto);
-
-    // Custom mapping for Map<String, Object> to String and vice-versa for details field
-    default String map(Map<String, Object> details) {
-        return details != null ? details.toString() : null;
-    }
-
-    default Map<String, Object> map(String details) {
-        return details != null ? new HashMap<>() : null;
-    }
-
-    // Challenge
+    default String map(Map<String, Object> details) { return details != null ? details.toString() : null; }
+    default Map<String, Object> map(String details) { return details != null ? new HashMap<>() : null; }
     Challenge toChallenge(ChallengeDTO dto);
     ChallengeDTO toChallengeDTO(Challenge challenge);
-
-    // UserChallenge
     UserChallenge toUserChallenge(UserChallengeProgressDTO dto);
+
+
+    // <<< MAPEAMENTO MODIFICADO >>>
+    // Adicionamos as anotações @Mapping para ensinar o MapStruct a buscar os dados
+    // da entidade aninhada 'challenge' que o JOIN FETCH nos trouxe.
+    @Mapping(source = "challenge.title", target = "title")
+    @Mapping(source = "challenge.description", target = "description")
+    @Mapping(source = "challenge.pointsReward", target = "pointsReward")
     UserChallengeProgressDTO toUserChallengeProgressDTO(UserChallenge userChallenge);
 }

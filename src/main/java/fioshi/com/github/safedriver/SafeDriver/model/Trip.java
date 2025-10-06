@@ -47,6 +47,5 @@ public class Trip {
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TripEvent> tripEvents;
 
-    @Column(name = "feedback_text", columnDefinition = "TEXT")
-    private String feedbackText;
+    // O CAMPO feedbackText FOI REMOVIDO DAQUI
 }

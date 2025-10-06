@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.Month;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
@@ -34,26 +36,28 @@ public class PointHistoryService {
     }
 
     public PointHistoryResponseDTO getPointHistory(UUID userId, HistoryPeriod period) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startDate;
+        // Obter a data/hora atual JÁ COM o offset do sistema
+        OffsetDateTime nowWithOffset = LocalDateTime.now().atOffset(ZoneId.systemDefault().getRules().getOffset(LocalDateTime.now()));
+
+        OffsetDateTime startDateWithOffset;
         List<Object[]> results;
 
         switch (period) {
             case DAILY:
-                startDate = now.minusDays(1);
-                results = pointHistoryRepository.findDailyAverage(userId, startDate);
+                startDateWithOffset = nowWithOffset.minusDays(1);
+                results = pointHistoryRepository.findDailyAverage(userId, startDateWithOffset);
                 break;
             case WEEKLY:
-                startDate = now.minusWeeks(1);
-                results = pointHistoryRepository.findWeeklyAverage(userId, startDate);
+                startDateWithOffset = nowWithOffset.minusWeeks(1);
+                results = pointHistoryRepository.findWeeklyAverage(userId, startDateWithOffset);
                 break;
             case MONTHLY:
-                startDate = now.minusMonths(1);
-                results = pointHistoryRepository.findMonthlyAverage(userId, startDate);
+                startDateWithOffset = nowWithOffset.minusMonths(1);
+                results = pointHistoryRepository.findMonthlyAverage(userId, startDateWithOffset);
                 break;
             case YEARLY:
-                startDate = now.minusYears(1);
-                results = pointHistoryRepository.findYearlyAverage(userId, startDate);
+                startDateWithOffset = nowWithOffset.minusYears(1);
+                results = pointHistoryRepository.findYearlyAverage(userId, startDateWithOffset);
                 break;
             default:
                 throw new IllegalArgumentException("Invalid period specified");
@@ -63,7 +67,7 @@ public class PointHistoryService {
                 .map(result -> convertToObjectDTO(result, period))
                 .collect(Collectors.toList());
 
-        Double overallAverage = pointHistoryRepository.findOverallAverage(userId, startDate);
+        Double overallAverage = pointHistoryRepository.findOverallAverage(userId, startDateWithOffset);
 
         return new PointHistoryResponseDTO(period.name(), overallAverage, averages);
     }
@@ -78,7 +82,11 @@ public class PointHistoryService {
                 label = String.format("%02d:00", value.intValue());
                 break;
             case WEEKLY:
-                label = DayOfWeek.of(value.intValue() == 1 ? 7 : value.intValue() - 1).getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
+                // <<< LÓGICA ATUALIZADA AQUI <<<
+                // Converte o dia da semana do padrão do banco de dados (ex: Domingo=1)
+                // para o padrão do Java DayOfWeek (Segunda=1, Domingo=7).
+                label = DayOfWeek.of(value.intValue() == 1 ? 7 : value.intValue() - 1)
+                        .getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
                 break;
             case MONTHLY:
                 label = "Semana " + value.intValue();

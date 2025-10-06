@@ -19,6 +19,6 @@ public class TripSummaryResponseDTO {
     private BigDecimal endLatitude;
     private BigDecimal endLongitude;
     private String message;
-    private String feedbackText;
 
+    // O CAMPO feedbackText FOI REMOVIDO DAQUI
 }

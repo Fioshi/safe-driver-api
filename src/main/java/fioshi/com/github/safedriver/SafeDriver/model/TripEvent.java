@@ -5,9 +5,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Map; // <-- Importar Map
 import java.util.UUID;
 
 @Getter
@@ -35,5 +35,6 @@ public class TripEvent {
     private BigDecimal longitude;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    private String details;
+    @Column(columnDefinition = "jsonb")
+    private Map<String, Object> details;
 }
